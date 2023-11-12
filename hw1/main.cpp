@@ -58,6 +58,7 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
     // Create the projection matrix for the given parameters.
     // Then return it.
 
+    // https://excalidraw.com/#json=GUbUTWFTJqo86gNORpPiZ,MRBqp0vwGOSNwSSXGk7_DA
     return projection;
 }
 
