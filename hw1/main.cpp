@@ -19,6 +19,9 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
     return view;
 }
 
+/**
+ * @brief 角度转弧度
+*/
 float to_radian(float degree)
 {
     return degree * MY_PI / 180.0f;
