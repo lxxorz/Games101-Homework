@@ -47,6 +47,16 @@ Eigen::Matrix4f get_model_matrix(float rotation_angle)
     return model;
 }
 
+Eigen::Matrix4f get_orth_projection_matrix(float left, float right, float bottom, float top, float near, float far) {
+    Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
+    projection << 2 / (right - left), 0, 0, -(right + left) / (right - left),
+        0, 2 / (top - bottom), 0, -(top + bottom) / (top - bottom),
+        0, 0, 2 / (near - far), -(near + far) / (near - far),
+        0, 0, 0, 1;
+    return projection;
+}
+
+
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
                                       float zNear, float zFar)
 {
@@ -59,7 +69,12 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
     // Then return it.
 
     // https://excalidraw.com/#json=GUbUTWFTJqo86gNORpPiZ,MRBqp0vwGOSNwSSXGk7_DA
-    return projection;
+    const float left = -zNear * tan(to_radian(eye_fov / 2.0f)) * aspect_ratio;
+    const float right = zNear * tan(to_radian(eye_fov / 2.0f)) * aspect_ratio;
+    const float bottom = -zNear * tan(to_radian(eye_fov / 2.0f));
+    const float top = zNear * tan(to_radian(eye_fov / 2.0f));
+
+    return get_orth_projection_matrix(left, right, bottom, top, zNear, zFar);
 }
 
 int main(int argc, const char **argv)
