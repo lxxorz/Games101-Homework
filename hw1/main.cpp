@@ -29,7 +29,7 @@ float to_radian(float degree)
     return degree * MY_PI / 180.0f;
 }
 
-Eigen::Matrix4f get_model_matrix(float α)
+Eigen::Matrix4f get_model_matrix(float angle)
 {
 
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
@@ -40,29 +40,38 @@ Eigen::Matrix4f get_model_matrix(float α)
     /**
      * https://excalidraw.com/#json=rHuSwx7q2NQGeUN0bQ4zN,FHz70z-axN1yAuIBi6AFUA
      */
-    model << cos(to_radian(α)), -sin(to_radian(α)), 0, 0,
-        sin(to_radian(α)), cos(to_radian(α)), 0, 0,
+    auto a = to_radian(angle);
+    // 绕z轴的旋转矩阵
+    model << cos(a), -sin(a), 0, 0,
+        sin(a), cos(a), 0, 0,
         0, 0, 1, 0,
         0, 0, 0, 1;
 
-    std::cout << model << std::endl;
     return model;
 }
 
-Eigen::Matrix4f get_orth_projection_matrix(float left, float right, float bottom, float top, float near, float far)
+Eigen::Matrix4f get_orth_projection_matrix(const float left, const float right, const float bottom, const float top, const float near, const float far)
 {
     Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
-    projection << 2 / (right - left), 0, 0, -(right + left) / 2,
-        0, 2 / (top - bottom), 0, -(top + bottom) / 2,
-        0, 0, 2 / (near - far), -(near + far) / 2,
+    Eigen::Matrix4f translate = Eigen::Matrix4f::Identity();
+    Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
+    // 将 frstum 移动到原点
+    translate << 1, 0, 0, -(left + right) / 2,
+        0, 1, 0, -(bottom + top) / 2,
+        0, 0, 1, -(near + far) / 2,
         0, 0, 0, 1;
 
+    // 归一化
+    scale << 2 / (right - left), 0, 0, 0,
+        0, 2 / (top - bottom), 0, 0,
+        0, 0, 2 / (near - far), 0,
+        0, 0, 0, 1;
 
-    return projection;
+    return scale * translate;
 }
 
-Eigen::Matrix4f get_projection_matrix(float fov, float aspect_ratio,
-                                      float n, float f)
+Eigen::Matrix4f get_projection_matrix(const float fov, const float aspect_ratio,
+                                      const float n, const float f)
 {
     // Students will implement this function
     // TODO: Implement this function
@@ -78,10 +87,13 @@ Eigen::Matrix4f get_projection_matrix(float fov, float aspect_ratio,
         0, 0, n + f, -n * f,
         0, 0, 1, 0;
 
-    const float top = n * tan(to_radian(fov / 2.0f));
+    const float a = to_radian(fov);
+    const float top = abs(n) * tan(a / 2.0f);
     const float bottom = -top;
-    const float left = top * aspect_ratio;
+    const float left = -top * aspect_ratio;
     const float right = -left;
+
+    std::cout << left << "," << right << "," << bottom << "," << top << "," << n << "," << f << std::endl;
     const auto orth = get_orth_projection_matrix(left, right, bottom, top, n, f);
     return orth * pers_to_orth;
 }
@@ -122,7 +134,8 @@ int main(int argc, const char **argv)
 
         r.set_model(get_model_matrix(angle));
         r.set_view(get_view_matrix(eye_pos));
-        r.set_projection(get_projection_matrix(45, 1, 0.1, 50));
+        // 朝向z轴负方向
+        r.set_projection(get_projection_matrix(45, 1, -0.1, -50));
 
         r.draw(pos_id, ind_id, rst::Primitive::Triangle);
         cv::Mat image(700, 700, CV_32FC3, r.frame_buffer().data());
@@ -139,7 +152,7 @@ int main(int argc, const char **argv)
 
         r.set_model(get_model_matrix(angle));
         r.set_view(get_view_matrix(eye_pos));
-        r.set_projection(get_projection_matrix(45, 1, 0.1, 50));
+        r.set_projection(get_projection_matrix(45, 1, -0.1, -50));
 
         r.draw(pos_id, ind_id, rst::Primitive::Triangle);
 
