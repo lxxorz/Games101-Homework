@@ -11,8 +11,10 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
     Eigen::Matrix4f view = Eigen::Matrix4f::Identity();
 
     Eigen::Matrix4f translate;
-    translate << 1, 0, 0, -eye_pos[0], 0, 1, 0, -eye_pos[1], 0, 0, 1,
-        -eye_pos[2], 0, 0, 0, 1;
+    translate << 1, 0, 0, -eye_pos[0],
+        0, 1, 0, -eye_pos[1],
+        0, 0, 1, -eye_pos[2],
+        0, 0, 0, 1;
 
     view = translate * view;
 
@@ -21,13 +23,13 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
 
 /**
  * @brief 角度转弧度
-*/
+ */
 float to_radian(float degree)
 {
     return degree * MY_PI / 180.0f;
 }
 
-Eigen::Matrix4f get_model_matrix(float rotation_angle)
+Eigen::Matrix4f get_model_matrix(float α)
 {
 
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
@@ -37,9 +39,9 @@ Eigen::Matrix4f get_model_matrix(float rotation_angle)
     // Then return it.
     /**
      * https://excalidraw.com/#json=rHuSwx7q2NQGeUN0bQ4zN,FHz70z-axN1yAuIBi6AFUA
-    */
-    model << cos(to_radian(rotation_angle)), -sin(to_radian(rotation_angle)), 0, 0,
-        sin(to_radian(rotation_angle)), cos(to_radian(rotation_angle)), 0, 0,
+     */
+    model << cos(to_radian(α)), -sin(to_radian(α)), 0, 0,
+        sin(to_radian(α)), cos(to_radian(α)), 0, 0,
         0, 0, 1, 0,
         0, 0, 0, 1;
 
@@ -47,7 +49,8 @@ Eigen::Matrix4f get_model_matrix(float rotation_angle)
     return model;
 }
 
-Eigen::Matrix4f get_orth_projection_matrix(float left, float right, float bottom, float top, float near, float far) {
+Eigen::Matrix4f get_orth_projection_matrix(float left, float right, float bottom, float top, float near, float far)
+{
     Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
     projection << 2 / (right - left), 0, 0, -(right + left) / (right - left),
         0, 2 / (top - bottom), 0, -(top + bottom) / (top - bottom),
@@ -56,25 +59,29 @@ Eigen::Matrix4f get_orth_projection_matrix(float left, float right, float bottom
     return projection;
 }
 
-
-Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
-                                      float zNear, float zFar)
+Eigen::Matrix4f get_projection_matrix(float fov, float aspect_ratio,
+                                      float n, float f)
 {
     // Students will implement this function
-
-    Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
-
     // TODO: Implement this function
     // Create the projection matrix for the given parameters.
     // Then return it.
 
     // https://excalidraw.com/#json=GUbUTWFTJqo86gNORpPiZ,MRBqp0vwGOSNwSSXGk7_DA
-    const float left = -zNear * tan(to_radian(eye_fov / 2.0f)) * aspect_ratio;
-    const float right = zNear * tan(to_radian(eye_fov / 2.0f)) * aspect_ratio;
-    const float bottom = -zNear * tan(to_radian(eye_fov / 2.0f));
-    const float top = zNear * tan(to_radian(eye_fov / 2.0f));
 
-    return get_orth_projection_matrix(left, right, bottom, top, zNear, zFar);
+    // 透视投影向正交投影转换
+    Eigen::Matrix4f pers_to_orth = Eigen::Matrix4f::Identity();
+    pers_to_orth << n, 0, 0, 0,
+        0, n, 0, 0,
+        0, 0, n + f, -n * f,
+        0, 0, 1, 0;
+
+    const float top = n * tan(to_radian(fov / 2.0f));
+    const float bottom = -top;
+    const float left = top * aspect_ratio;
+    const float right = -left;
+    const auto orth = get_orth_projection_matrix(left, right, bottom, top, n, f);
+    return orth * pers_to_orth;
 }
 
 int main(int argc, const char **argv)
@@ -143,11 +150,15 @@ int main(int argc, const char **argv)
 
         if (key == 'a')
         {
-            angle += 45;
-        }
-        else if (key == 'd')
+            angle += 10;
+        } else if (key == 'd')
         {
-            angle -= 45;
+            angle -= 10;
+        } else if(key == 's') {
+            eye_pos[2] -= 1;
+
+        } else if(key == 'w') {
+            eye_pos[2] += 1;
         }
     }
 
