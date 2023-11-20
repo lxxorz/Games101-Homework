@@ -52,10 +52,12 @@ Eigen::Matrix4f get_model_matrix(float α)
 Eigen::Matrix4f get_orth_projection_matrix(float left, float right, float bottom, float top, float near, float far)
 {
     Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
-    projection << 2 / (right - left), 0, 0, -(right + left) / (right - left),
-        0, 2 / (top - bottom), 0, -(top + bottom) / (top - bottom),
-        0, 0, 2 / (near - far), -(near + far) / (near - far),
+    projection << 2 / (right - left), 0, 0, -(right + left) / 2,
+        0, 2 / (top - bottom), 0, -(top + bottom) / 2,
+        0, 0, 2 / (near - far), -(near + far) / 2,
         0, 0, 0, 1;
+
+
     return projection;
 }
 
@@ -151,13 +153,17 @@ int main(int argc, const char **argv)
         if (key == 'a')
         {
             angle += 10;
-        } else if (key == 'd')
+        }
+        else if (key == 'd')
         {
             angle -= 10;
-        } else if(key == 's') {
+        }
+        else if (key == 's')
+        {
             eye_pos[2] -= 1;
-
-        } else if(key == 'w') {
+        }
+        else if (key == 'w')
+        {
             eye_pos[2] += 1;
         }
     }
