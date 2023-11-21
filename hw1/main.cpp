@@ -71,7 +71,7 @@ Eigen::Matrix4f get_orth_projection_matrix(const float left, const float right, 
 }
 
 Eigen::Matrix4f get_projection_matrix(const float fov, const float aspect_ratio,
-                                      const float n, const float f)
+                                      const float near, const float far)
 {
     // Students will implement this function
     // TODO: Implement this function
@@ -81,6 +81,9 @@ Eigen::Matrix4f get_projection_matrix(const float fov, const float aspect_ratio,
     // https://excalidraw.com/#json=GUbUTWFTJqo86gNORpPiZ,MRBqp0vwGOSNwSSXGk7_DA
 
     // 透视投影向正交投影转换
+    const float n = -near;
+    const float f = -far;
+
     Eigen::Matrix4f pers_to_orth = Eigen::Matrix4f::Identity();
     pers_to_orth << n, 0, 0, 0,
         0, n, 0, 0,
@@ -135,7 +138,7 @@ int main(int argc, const char **argv)
         r.set_model(get_model_matrix(angle));
         r.set_view(get_view_matrix(eye_pos));
         // 朝向z轴负方向
-        r.set_projection(get_projection_matrix(45, 1, -0.1, -50));
+        r.set_projection(get_projection_matrix(45, 1, 0.1, 50));
 
         r.draw(pos_id, ind_id, rst::Primitive::Triangle);
         cv::Mat image(700, 700, CV_32FC3, r.frame_buffer().data());
@@ -152,7 +155,7 @@ int main(int argc, const char **argv)
 
         r.set_model(get_model_matrix(angle));
         r.set_view(get_view_matrix(eye_pos));
-        r.set_projection(get_projection_matrix(45, 1, -0.1, -50));
+        r.set_projection(get_projection_matrix(45, 1, 0.1, 50));
 
         r.draw(pos_id, ind_id, rst::Primitive::Triangle);
 
