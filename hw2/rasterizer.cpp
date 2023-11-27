@@ -39,10 +39,21 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
     return Vector4f(v3.x(), v3.y(), v3.z(), w);
 }
 
-
 static bool insideTriangle(int x, int y, const Vector3f* _v)
-{   
+{
     // TODO : Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
+    const auto a = _v[0];
+    const auto b = _v[1];
+    const auto c = _v[2];
+    const auto p = Eigen::Vector3f(x, y, 1);
+    const auto ab = b - a;
+    const auto bc = c - b;
+    const auto ca = a - c;
+    const auto c1 = (p - c).cross(ca);
+    const auto c2 = (p - a).cross(ab);
+    const auto c3 = (p - b).cross(bc);
+
+    return c1.dot(c2) && c2.dot(c3) && c1.dot(c3);
 }
 
 static std::tuple<float, float, float> computeBarycentric2D(float x, float y, const Vector3f* v)
@@ -105,7 +116,7 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
 //Screen space rasterization
 void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     auto v = t.toVector4();
-    
+
     // TODO : Find out the bounding box of current triangle.
     // iterate through the pixel and find if the current pixel is inside the triangle
 
