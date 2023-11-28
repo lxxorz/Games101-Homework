@@ -27,12 +27,28 @@ Eigen::Matrix4f get_model_matrix(float rotation_angle)
     return model;
 }
 
+Eigen::Matrix4f get_orth_matrix(const float left, const float right, const float top, const float bottom, const float near, const float far)
+{
+    Eigen::Matrix4f ortho_translate = Eigen::Matrix4f::Identity();
+    ortho_translate << 1,0,0,-(left+right)/2.0f,
+                       0,1,0,-(top+bottom)/2.0f,
+                       0,0,1,-(near+far)/2.0f,
+                       0,0,0,1;
+
+
+    Eigen::Matrix4f ortho_scale = Eigen::Matrix4f::Identity();
+    ortho_scale << 2.0f/(right-left),0,0,0,
+                   0,2.0f/(top-bottom),0,0,
+                   0,0,2.0f/(near-far),0,
+                   0,0,0,1;
+    return ortho_scale * ortho_translate;
+}
+
+
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
 {
     // TODO: Copy-paste your implementation from the previous assignment.
-    Eigen::Matrix4f projection;
     Eigen::Matrix4f m_pers_to_ortho = Eigen::Matrix4f::Identity();
-    Eigen::Matrix4f m_ortho_scale = Eigen::Matrix4f::Identity();
     const auto n = -zNear;
     const auto f = -zFar;
 
@@ -41,26 +57,14 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float z
                        0, 0, n+f, -n*f,
                        0, 0, 1, 0;
 
-    const auto a =  MY_PI / 180.0f;
+    const auto a =  eye_fov *  MY_PI / 180.0f;
     const auto t = std::tan(a/2.0f) * std::abs(n);
     const auto r = t * aspect_ratio;
     const auto b = -t;
     const auto l = -r;
 
-    return projection;
+    return get_orth_matrix(l, r, t, b, n, f) * m_pers_to_ortho;
 }
-
-Eigen::Matrix4f get_orth_matrix(const float left, const float right, const float top, const float bottom, const float near, const float far)
-{
-    Eigen::Matrix4f orth;
-    orth << 2.0f/(right-left), 0, 0, -(right+left)/(right-left),
-            0, 2.0f/(top-bottom), 0, -(top+bottom)/(top-bottom),
-            0, 0, 2.0f/(near-far), -(near+far)/(near-far),
-            0, 0, 0, 1;
-    return orth;
-}
-
-
 
 
 int main(int argc, const char** argv)
