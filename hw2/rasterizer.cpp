@@ -39,22 +39,22 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
     return Vector4f(v3.x(), v3.y(), v3.z(), w);
 }
 
+/**
+ * 向量a,b是否在向量c的同侧
+*/
+bool is_same_side(Vector3f c, Vector3f a, Vector3f b) {
+    return c.cross(a).dot(c.cross(b)) >= 0;
+}
+
 static bool insideTriangle(int x, int y, const Vector3f* _v)
 {
     // TODO : Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
-    // FIXME: 有问题，需要修复
     const auto a = _v[0];
     const auto b = _v[1];
     const auto c = _v[2];
     const auto p = Eigen::Vector3f(x, y, 1);
-    const auto ab = b - a;
-    const auto bc = c - b;
-    const auto ca = a - c;
-    const auto c1 = (p - c).cross(ca);
-    const auto c2 = (p - a).cross(ab);
-    const auto c3 = (p - b).cross(bc);
 
-    return c1.dot(c2) && c2.dot(c3) && c1.dot(c3);
+    return is_same_side(b - a, p - a, c - a) && is_same_side(c - b, p - b, a - b) && is_same_side(a - c, p - c, b - c);
 }
 
 static std::tuple<float, float, float> computeBarycentric2D(float x, float y, const Vector3f* v)
