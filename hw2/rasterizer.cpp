@@ -120,6 +120,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
 
     // TODO : Find out the bounding box of current triangle.
     // 计算三角形包围盒， 此时坐标已经是屏幕坐标
+    // 问题1. 没有对屏幕坐标取整
     const auto x_min = std::floor(std::min(v[0].x(), std::min(v[1].x(), v[2].x())));
     const auto y_min = std::floor(std::min(v[0].y(), std::min(v[1].y(), v[2].y())));
     const auto x_max = std::ceil(std::max(v[0].x(), std::max(v[1].x(), v[2].x())));
