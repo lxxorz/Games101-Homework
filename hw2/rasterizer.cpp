@@ -119,11 +119,13 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     auto v = t.toVector4();
 
     // TODO : Find out the bounding box of current triangle.
-    // 计算三角形包围盒
-    const auto x_min = std::min(v[0].x(), std::min(v[1].x(), v[2].x()));
-    const auto y_min = std::min(v[0].y(), std::min(v[1].y(), v[2].y()));
-    const auto x_max = std::max(v[0].x(), std::max(v[1].x(), v[2].x()));
-    const auto y_max = std::max(v[0].y(), std::max(v[1].y(), v[2].y()));
+    // 计算三角形包围盒， 此时坐标已经是屏幕坐标
+    const auto x_min = std::floor(std::min(v[0].x(), std::min(v[1].x(), v[2].x())));
+    const auto y_min = std::floor(std::min(v[0].y(), std::min(v[1].y(), v[2].y())));
+    const auto x_max = std::ceil(std::max(v[0].x(), std::max(v[1].x(), v[2].x())));
+    const auto y_max = std::ceil(std::max(v[0].y(), std::max(v[1].y(), v[2].y())));
+
+    const bool is_anti_aliasing = false;
 
     // iterate through the pixel and find if the current pixel is inside the triangle
     for(auto x = x_min; x <= x_max; ++x) {
