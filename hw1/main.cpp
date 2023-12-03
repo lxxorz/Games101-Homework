@@ -81,8 +81,8 @@ Eigen::Matrix4f get_projection_matrix(const float fov, const float aspect_ratio,
     // https://excalidraw.com/#json=GUbUTWFTJqo86gNORpPiZ,MRBqp0vwGOSNwSSXGk7_DA
 
     // 透视投影向正交投影转换
-    const float n = -near;
-    const float f = -far;
+    const float n = near;
+    const float f = far;
 
     Eigen::Matrix4f pers_to_orth = Eigen::Matrix4f::Identity();
     pers_to_orth << n, 0, 0, 0,
@@ -91,12 +91,11 @@ Eigen::Matrix4f get_projection_matrix(const float fov, const float aspect_ratio,
         0, 0, 1, 0;
 
     const float a = to_radian(fov);
-    const float top = abs(n) * tan(a / 2.0f);
+    const float top = -abs(n) * tan(a / 2.0f);
     const float bottom = -top;
     const float left = -top * aspect_ratio;
     const float right = -left;
 
-    std::cout << left << "," << right << "," << bottom << "," << top << "," << n << "," << f << std::endl;
     const auto orth = get_orth_projection_matrix(left, right, bottom, top, n, f);
     return orth * pers_to_orth;
 }
