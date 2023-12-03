@@ -126,24 +126,53 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     const auto x_max = std::ceil(std::max(v[0].x(), std::max(v[1].x(), v[2].x())));
     const auto y_max = std::ceil(std::max(v[0].y(), std::max(v[1].y(), v[2].y())));
 
-    const bool is_anti_aliasing = false;
-
+    const bool is_enable_msaa = true;
+    const unsigned int nums = 2; // sample range 2x2
     // iterate through the pixel and find if the current pixel is inside the triangle
-    for(auto x = x_min; x <= x_max; ++x) {
-        for(auto y = y_min; y <= y_max; ++y) {
-            if(insideTriangle(x, y, t.v)) {
-                // If so, use the following code to get the interpolated z value.
-                auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
-                float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-                float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-                z_interpolated *= w_reciprocal;
-                // FIXME 修复z_interpolated值错误
-                if(z_interpolated < depth_buf[get_index(x, y)]) {
-                    depth_buf[get_index(x, y)] = z_interpolated;
-                    // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
-                    set_pixel(Vector3f(x, y, z_interpolated), t.getColor());
+    for(unsigned int x = x_min; x <= x_max; ++x) {
+        for(unsigned int y = y_min; y <= y_max; ++y) {
+                if(is_enable_msaa) {
+                    auto count = 0;
+                    for(auto offset_x = 0; offset_x < nums; ++offset_x) {
+                        for(auto offset_y = 0; offset_y < nums; ++offset_y) {
+                            const auto sample_offset_x = (offset_x + 0.5f) / nums;
+                            const auto sample_offset_y = (offset_y + 0.5f) / nums;
+                            const auto sample_x = x + sample_offset_x;
+                            const auto sample_y = y + sample_offset_y;
+
+                            if(insideTriangle(sample_x, sample_y, t.v)) {
+                                ++count;
+                            }
+                        }
+                    }
+                    // FIXME msaa is not work.
+                    if(count < 4 && count > 0) {
+                        std::cout << "msaa works !" << count << std::endl;
+                    }
+                    auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
+                    float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                    float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                    z_interpolated *= w_reciprocal;
+                    if(z_interpolated < depth_buf[get_index(x, y)] && count) {
+                        depth_buf[get_index(x, y)] = z_interpolated;
+                        // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
+                        set_pixel(Vector3f(x, y, z_interpolated), t.getColor() * count * 1.0f / (nums * nums));
+                    }
+                } else {
+                    if(insideTriangle(x + 0.5, y + 0.5, t.v)) {
+                        // If so, use the following code to get the interpolated z value.
+                        auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
+                        float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                        float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                        z_interpolated *= w_reciprocal;
+
+                        if(z_interpolated < depth_buf[get_index(x, y)]) {
+                            depth_buf[get_index(x, y)] = z_interpolated;
+                            // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
+                            set_pixel(Vector3f(x, y, z_interpolated), t.getColor());
+                        }
+                    }
                 }
-            }
         }
     }
 }
