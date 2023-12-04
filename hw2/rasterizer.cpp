@@ -46,7 +46,8 @@ bool is_same_side(Vector3f c, Vector3f a, Vector3f b) {
     return c.cross(a).dot(c.cross(b)) >= 0;
 }
 
-static bool insideTriangle(int x, int y, const Vector3f* _v)
+// 问题2 参数类型是 int cpp会隐式转换类型，导致了 msaa 没有生效
+static bool insideTriangle(const float x, const float y, const Vector3f* _v)
 {
     // TODO : Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
     const auto a = _v[0];
@@ -145,10 +146,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                             }
                         }
                     }
-                    // FIXME msaa is not work.
-                    if(count < 4 && count > 0) {
-                        std::cout << "msaa works !" << count << std::endl;
-                    }
+
                     auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
                     float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
                     float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
