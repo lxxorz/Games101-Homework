@@ -133,7 +133,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     for(unsigned int x = x_min; x <= x_max; ++x) {
         for(unsigned int y = y_min; y <= y_max; ++y) {
                 if(is_enable_msaa) {
-                    auto count = 0;
+                    auto color = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
                     for(auto offset_x = 0; offset_x < nums; ++offset_x) {
                         for(auto offset_y = 0; offset_y < nums; ++offset_y) {
                             const auto sample_offset_x = (offset_x + 0.5f) / nums;
@@ -142,7 +142,8 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                             const auto sample_y = y + sample_offset_y;
 
                             if(insideTriangle(sample_x, sample_y, t.v)) {
-                                ++count;
+                                // 获取子采样点的颜色
+                                // const auto color = subsample_col_buf[]
                             }
                         }
                     }
@@ -151,10 +152,10 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                     float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
                     float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
                     z_interpolated *= w_reciprocal;
-                    if(z_interpolated < depth_buf[get_index(x, y)] && count) {
+                    if(z_interpolated < depth_buf[get_index(x, y)]) {
                         depth_buf[get_index(x, y)] = z_interpolated;
                         // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
-                        set_pixel(Vector3f(x, y, z_interpolated), t.getColor() * count * 1.0f / (nums * nums));
+                        set_pixel(Vector3f(x, y, z_interpolated), color / (nums * nums));
                     }
                 } else {
                     if(insideTriangle(x + 0.5, y + 0.5, t.v)) {
@@ -196,9 +197,18 @@ void rst::rasterizer::clear(rst::Buffers buff)
     {
         std::fill(frame_buf.begin(), frame_buf.end(), Eigen::Vector3f{0, 0, 0});
     }
+
     if ((buff & rst::Buffers::Depth) == rst::Buffers::Depth)
     {
         std::fill(depth_buf.begin(), depth_buf.end(), std::numeric_limits<float>::infinity());
+    }
+
+    if((buff & rst::Buffers::AntiAliasing) == rst::Buffers::AntiAliasing) {
+        if((buff & rst::Buffers::Color) == rst::Buffers::Color) {
+            std::fill(subsample_col_buf.begin(), subsample_col_buf.end(), Eigen::Vector3f{0, 0, 0});
+        }
+        // TODO
+        std::fill(subsample_depth_buf.begin(), subsample_depth_buf.end(), std::numeric_limits<float>::infinity());
     }
 }
 
