@@ -9,6 +9,9 @@
 #include <opencv2/opencv.hpp>
 #include <math.h>
 
+const bool is_enable_msaa = true;
+const unsigned int nums = 2; // sample range 2x2
+constexpr unsigned int sample_nums = nums * nums;
 
 rst::pos_buf_id rst::rasterizer::load_positions(const std::vector<Eigen::Vector3f> &positions)
 {
@@ -127,13 +130,13 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     const auto x_max = std::ceil(std::max(v[0].x(), std::max(v[1].x(), v[2].x())));
     const auto y_max = std::ceil(std::max(v[0].y(), std::max(v[1].y(), v[2].y())));
 
-    const bool is_enable_msaa = true;
-    const unsigned int nums = 2; // sample range 2x2
+
     // iterate through the pixel and find if the current pixel is inside the triangle
     for(unsigned int x = x_min; x <= x_max; ++x) {
         for(unsigned int y = y_min; y <= y_max; ++y) {
                 if(is_enable_msaa) {
                     auto color = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
+                    auto z_interpolated = 0.0f;
                     for(auto offset_x = 0; offset_x < nums; ++offset_x) {
                         for(auto offset_y = 0; offset_y < nums; ++offset_y) {
                             const auto sample_offset_x = (offset_x + 0.5f) / nums;
@@ -141,22 +144,37 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                             const auto sample_x = x + sample_offset_x;
                             const auto sample_y = y + sample_offset_y;
 
+                            // FIXME 子采样错误
                             if(insideTriangle(sample_x, sample_y, t.v)) {
-                                // 获取子采样点的颜色
-                                // const auto color = subsample_col_buf[]
+                                color += subsample_frame_buf[get_subsample_index(x, y, offset_x, offset_y)];
+                                auto[alpha, beta, gamma] = computeBarycentric2D(sample_x, sample_y, t.v);
+                                float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                                float sample_z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                                sample_z_interpolated *= w_reciprocal;
+                                z_interpolated += sample_z_interpolated;
+                                if(sample_z_interpolated < subsample_depth_buf[get_subsample_index(x, y, offset_x, offset_y)]) {
+                                    subsample_depth_buf[get_subsample_index(x, y, offset_x, offset_y)] = sample_z_interpolated;
+                                    // 当前三角形的颜色
+                                    color += t.getColor();
+                                    subsample_frame_buf[get_subsample_index(x, y, offset_x, offset_y)] = t.getColor();
+                                } else {
+                                    // 上一帧子采样点的颜色
+                                    color += subsample_frame_buf[get_subsample_index(x, y, offset_x, offset_y)];
+                                }
                             }
                         }
                     }
 
-                    auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
-                    float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-                    float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-                    z_interpolated *= w_reciprocal;
-                    if(z_interpolated < depth_buf[get_index(x, y)]) {
-                        depth_buf[get_index(x, y)] = z_interpolated;
+                    // auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
+                    // float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                    // float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                    // z_interpolated *= w_reciprocal;
+
+                    // if(z_interpolated < depth_buf[get_index(x, y)]) {
+                        // depth_buf[get_index(x, y)] = z_interpolated;
                         // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
-                        set_pixel(Vector3f(x, y, z_interpolated), color / (nums * nums));
-                    }
+                        set_pixel(Vector3f(x, y, z_interpolated / (sample_nums)), color / (sample_nums));
+                    // }
                 } else {
                     if(insideTriangle(x + 0.5, y + 0.5, t.v)) {
                         // If so, use the following code to get the interpolated z value.
@@ -203,19 +221,24 @@ void rst::rasterizer::clear(rst::Buffers buff)
         std::fill(depth_buf.begin(), depth_buf.end(), std::numeric_limits<float>::infinity());
     }
 
-    if((buff & rst::Buffers::AntiAliasing) == rst::Buffers::AntiAliasing) {
-        if((buff & rst::Buffers::Color) == rst::Buffers::Color) {
-            std::fill(subsample_col_buf.begin(), subsample_col_buf.end(), Eigen::Vector3f{0, 0, 0});
-        }
-        // TODO
+    if((buff & rst::Buffers::AntiAliasing) == rst::Buffers::AntiAliasing && (buff & rst::Buffers::Depth) == rst::Buffers::Depth) {
         std::fill(subsample_depth_buf.begin(), subsample_depth_buf.end(), std::numeric_limits<float>::infinity());
     }
+}
+
+// 获取子采样点的索引
+int rst::rasterizer::get_subsample_index(int x, int y, int offset_x, int offset_y) {
+    return (height - 1 - y) * width * sample_nums + x * sample_nums + offset_y * nums + offset_x;
 }
 
 rst::rasterizer::rasterizer(int w, int h) : width(w), height(h)
 {
     frame_buf.resize(w * h);
     depth_buf.resize(w * h);
+
+    // 子采样点
+    subsample_frame_buf.resize(w * h * sample_nums);
+    subsample_depth_buf.resize(w * h * sample_nums);
 }
 
 int rst::rasterizer::get_index(int x, int y)
