@@ -147,16 +147,17 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                             // FIXME 子采样错误
                             if(insideTriangle(sample_x, sample_y, t.v)) {
                                 color += subsample_frame_buf[get_subsample_index(x, y, offset_x, offset_y)];
+
                                 auto[alpha, beta, gamma] = computeBarycentric2D(sample_x, sample_y, t.v);
                                 float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
                                 float sample_z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
                                 sample_z_interpolated *= w_reciprocal;
                                 z_interpolated += sample_z_interpolated;
+
                                 if(sample_z_interpolated < subsample_depth_buf[get_subsample_index(x, y, offset_x, offset_y)]) {
                                     subsample_depth_buf[get_subsample_index(x, y, offset_x, offset_y)] = sample_z_interpolated;
-                                    // 当前三角形的颜色
-                                    color += t.getColor();
                                     subsample_frame_buf[get_subsample_index(x, y, offset_x, offset_y)] = t.getColor();
+                                    color += t.getColor();
                                 } else {
                                     // 上一帧子采样点的颜色
                                     color += subsample_frame_buf[get_subsample_index(x, y, offset_x, offset_y)];
@@ -164,17 +165,8 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                             }
                         }
                     }
-
-                    // auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
-                    // float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-                    // float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-                    // z_interpolated *= w_reciprocal;
-
-                    // if(z_interpolated < depth_buf[get_index(x, y)]) {
-                        // depth_buf[get_index(x, y)] = z_interpolated;
-                        // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
-                        set_pixel(Vector3f(x, y, z_interpolated / (sample_nums)), color / (sample_nums));
-                    // }
+                    // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
+                    set_pixel(Vector3f(x, y, z_interpolated / (sample_nums)), color / (sample_nums));
                 } else {
                     if(insideTriangle(x + 0.5, y + 0.5, t.v)) {
                         // If so, use the following code to get the interpolated z value.
