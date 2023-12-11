@@ -137,6 +137,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                 if(is_enable_msaa) {
                     auto color = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
                     auto z_interpolated = 0.0f;
+                    auto is_set_pixel = 0;
                     for(auto offset_x = 0; offset_x < nums; ++offset_x) {
                         for(auto offset_y = 0; offset_y < nums; ++offset_y) {
                             const auto sample_offset_x = (offset_x + 0.5f) / nums;
@@ -146,7 +147,8 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
 
                             // FIXME 子采样错误
                             if(insideTriangle(sample_x, sample_y, t.v)) {
-                                color += subsample_frame_buf[get_subsample_index(x, y, offset_x, offset_y)];
+                                auto sample_index = get_subsample_index(x, y, offset_x, offset_y);
+                                color += subsample_frame_buf[sample_index];
 
                                 auto[alpha, beta, gamma] = computeBarycentric2D(sample_x, sample_y, t.v);
                                 float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
@@ -154,19 +156,23 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                                 sample_z_interpolated *= w_reciprocal;
                                 z_interpolated += sample_z_interpolated;
 
-                                if(sample_z_interpolated < subsample_depth_buf[get_subsample_index(x, y, offset_x, offset_y)]) {
-                                    subsample_depth_buf[get_subsample_index(x, y, offset_x, offset_y)] = sample_z_interpolated;
-                                    subsample_frame_buf[get_subsample_index(x, y, offset_x, offset_y)] = t.getColor();
+
+                                if(sample_z_interpolated < subsample_depth_buf[sample_index]) {
+                                    is_set_pixel += 1;
+                                    subsample_depth_buf[sample_index] = sample_z_interpolated;
+                                    // 上一帧此采样点颜色 + 此处三角形颜色
+                                    color += subsample_frame_buf[sample_index];
                                     color += t.getColor();
-                                } else {
-                                    // 上一帧子采样点的颜色
-                                    color += subsample_frame_buf[get_subsample_index(x, y, offset_x, offset_y)];
+
+                                    subsample_frame_buf[sample_index] = t.getColor();
                                 }
                             }
                         }
                     }
                     // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
-                    set_pixel(Vector3f(x, y, z_interpolated / (sample_nums)), color / (sample_nums));
+                    if(is_set_pixel) {
+                        set_pixel(Vector3f(x, y, z_interpolated), color / (sample_nums));
+                    }
                 } else {
                     if(insideTriangle(x + 0.5, y + 0.5, t.v)) {
                         // If so, use the following code to get the interpolated z value.
@@ -215,6 +221,7 @@ void rst::rasterizer::clear(rst::Buffers buff)
 
     if((buff & rst::Buffers::AntiAliasing) == rst::Buffers::AntiAliasing && (buff & rst::Buffers::Depth) == rst::Buffers::Depth) {
         std::fill(subsample_depth_buf.begin(), subsample_depth_buf.end(), std::numeric_limits<float>::infinity());
+        std::fill(subsample_frame_buf.begin(), subsample_frame_buf.end(), Eigen::Vector3f(0.0f, 0.0f, 0.0f));
     }
 }
 
