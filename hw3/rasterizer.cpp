@@ -203,6 +203,7 @@ void rst::rasterizer::draw(std::vector<Triangle *> &TriangleList)
             vec.z() /= vec.w();
         }
 
+        // 法向量的变换不能直接使用model-view变换矩阵，因为model-view变换矩阵可能非均匀的缩放，可以利用切向量证明法向量的变换矩阵是model-view的逆转置矩阵
         Eigen::Matrix4f inv_trans = (view * model).inverse().transpose();
         Eigen::Vector4f n[] = {
             inv_trans * to_vec4(t->normal[0], 0.0f),
