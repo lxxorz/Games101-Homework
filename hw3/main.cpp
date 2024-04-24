@@ -152,31 +152,57 @@ Eigen::Vector3f texture_fragment_shader(const fragment_shader_payload& payload)
 
 Eigen::Vector3f phong_fragment_shader(const fragment_shader_payload& payload)
 {
+    // 环境光反射系数
     Eigen::Vector3f ka = Eigen::Vector3f(0.005, 0.005, 0.005);
+    // 漫反射系数
     Eigen::Vector3f kd = payload.color;
+    // 镜面反射系数
     Eigen::Vector3f ks = Eigen::Vector3f(0.7937, 0.7937, 0.7937);
 
+    // 光源1
     auto l1 = light{{20, 20, 20}, {500, 500, 500}};
+    // 光源2
     auto l2 = light{{-20, 20, 0}, {500, 500, 500}};
 
     std::vector<light> lights = {l1, l2};
+    // 环境光强度
     Eigen::Vector3f amb_light_intensity{10, 10, 10};
+    // 观察者位置
     Eigen::Vector3f eye_pos{0, 0, 10};
 
+    // 镜面反射指数
     float p = 150;
 
+    // 片元颜色
     Eigen::Vector3f color = payload.color;
+    // 片元位置
     Eigen::Vector3f point = payload.view_pos;
+    // 片元法向量
     Eigen::Vector3f normal = payload.normal;
 
+    // 计算结果颜色
     Eigen::Vector3f result_color = {0, 0, 0};
     for (auto& light : lights)
     {
         // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular*
         // components are. Then, accumulate that result on the *result_color* object.
+        // l是光源到片元的方向向量
+        const auto l = (light.position - point).normalized();
+        // v是片元到观察者的方向向量
+        const auto v = (eye_pos - point).normalized();
+        // h是光源和观察者的方向向量的中间向量
+        const auto h = (l + v).normalized();
+        // 计算镜面反射向量
+        const auto r = (2 * l.dot(normal) * normal - l).normalized();
 
+        const auto ambient = ka.cwiseProduct(amb_light_intensity);
+        const auto diffuse = kd.cwiseProduct(light.intensity) * std::max(0.0f, normal.dot(l));
+        const auto specular = ks.cwiseProduct(light.intensity) * std::pow(std::max(0.0f, normal.dot(h)), p);
+
+        result_color += (ambient + diffuse + specular);
     }
 
+    std::cout << result_color << std::endl;
     return result_color * 255.f;
 }
 
