@@ -14,7 +14,7 @@ Blinn-Phong 模型是一种着色模型。该模型将光照对物体的作用�
 
 漫反射不考虑观察者的观察角度。只考虑光源的入射角度以及着色点法向量的位置
 
-![](assets/diffuse-ill.png)
+![diffuse-ill](assets/diffuse-ill.png)
 
 $$
 \mathrm{diffuse} = k_d\cdot (I/r^2) \mathrm{max}(0, \mathbf{l}\cdot \mathbf{n})
@@ -44,20 +44,20 @@ $$
 
 还有一个问题是，毕竟 blinn-phong 是一个经验模型。换而言之就是不够准确。如果直接用上述公式，就会得到一个很大的高光
 
-![](./specular-p-1.png)
+![specular-p-1](./specular-p-1.png)
 
 这是因为 $\mathbf{n}\cdot \mathbf{h}$ 也就是两个方向向量的余弦$\cos{\alpha}$ 变化过于平缓
 
-![](assets/cos.png)
+![cos](assets/cos.png)
 
 需要给cos加上一个指数 $alpha$
 
 $p=64$
-![](./specular_p_64.png)
+![specular-p-64](./specular_p_64.png)
 
 $p=150$
 
-![](./specular.png)
+![specular](./specular.png)
 
 ## 环境光
 
@@ -67,7 +67,7 @@ $$
 \mathrm{ambient}=k_a \cdot I
 $$
 
-![](./abmbient.png)
+![ambient](./abmbient.png)
 
 ## 结合
 
@@ -77,5 +77,4 @@ $$
 \mathrm{color}= \text{diffuse} + \text{ambient} + \text{specular}
 $$
 
-![](./blinn-phong.png)
-
+![Blinn-Phong](./blinn-phong.png)
